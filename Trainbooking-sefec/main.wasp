@@ -1,0 +1,153 @@
+app Trainbooking {
+  wasp: {
+    version: "^0.11.4"
+  },
+  title: "Trainbooking",
+  client: {
+    rootComponent: import { Layout } from "@client/Layout.jsx",
+  },
+  db: {
+    prisma: {
+      clientPreviewFeatures: ["extendedWhereUnique"]
+    }
+  },
+  auth: {
+    userEntity: User,
+    methods: {
+      usernameAndPassword: {}
+    },
+    onAuthFailedRedirectTo: "/login",
+    onAuthSucceededRedirectTo: "/"
+  },
+}
+
+route LoginRoute { path: "/login", to: LoginPage }
+page LoginPage {
+  component: import Login from "@client/pages/auth/Login.jsx"
+}
+route SignupRoute { path: "/signup", to: SignupPage }
+page SignupPage {
+  component: import Signup from "@client/pages/auth/Signup.jsx"
+}
+
+entity User {=psl
+    id            Int       @id @default(autoincrement())
+    username      String    @unique
+    password      String
+    bookings      Booking[]
+    loyaltyPoints Int       @default(0)
+psl=}
+
+entity Booking {=psl
+    id              Int      @id @default(autoincrement())
+    train           Train    @relation(fields: [trainId], references: [id])
+    user            User     @relation(fields: [userId], references: [id])
+    userId          Int
+    seatNumber      String
+    bookingDate     DateTime
+    tripDate        DateTime
+    status          String
+    cancellationFee Int
+    trainId         Int
+psl=}
+
+entity Train {=psl
+    id          Int       @id @default(autoincrement())
+    trainNumber String    @unique
+    route       Route     @relation(fields: [routeId], references: [id])
+    seats       Int
+    class       String
+    amenities   Amenity[]
+    Booking     Booking[]
+    routeId     Int
+psl=}
+
+entity Route {=psl
+    id            Int      @id @default(autoincrement())
+    startStation  String
+    endStation    String
+    departureTime DateTime
+    arrivalTime   DateTime
+    Train         Train[]
+psl=}
+
+entity Amenity {=psl
+    id      Int    @id @default(autoincrement())
+    name    String
+    Train   Train? @relation(fields: [trainId], references: [id])
+    trainId Int?
+psl=}
+
+action createBooking {
+  fn: import { createBooking } from "@server/actions.js",
+  entities: [User, Booking, Train]
+}
+
+action cancelBooking {
+  fn: import { cancelBooking } from "@server/actions.js",
+  entities: [Booking]
+}
+
+action rescheduleBooking {
+  fn: import { rescheduleBooking } from "@server/actions.js",
+  entities: [Booking]
+}
+
+action updateUserProfile {
+  fn: import { updateUserProfile } from "@server/actions.js",
+  entities: [User]
+}
+
+action redeemLoyaltyPoints {
+  fn: import { redeemLoyaltyPoints } from "@server/actions.js",
+  entities: [User]
+}
+
+query getBooking {
+  fn: import { getBooking } from "@server/queries.js",
+  entities: [Booking]
+}
+
+query getTrain {
+  fn: import { getTrain } from "@server/queries.js",
+  entities: [Train]
+}
+
+query getRoute {
+  fn: import { getRoute } from "@server/queries.js",
+  entities: [Route]
+}
+
+query getUserProfile {
+  fn: import { getUserProfile } from "@server/queries.js",
+  entities: [User]
+}
+
+query getLoyaltyPoints {
+  fn: import { getLoyaltyPoints } from "@server/queries.js",
+  entities: [User]
+}
+
+route DashboardRoute { path: "/dashboard", to: DashboardPage }
+page DashboardPage {
+  component: import { Dashboard } from "@client/Dashboard.jsx",
+  authRequired: true
+}
+
+route TrainRoute { path: "/train/:trainId", to: TrainPage }
+page TrainPage {
+  component: import { Train } from "@client/pages/Train.jsx",
+  authRequired: true
+}
+
+route RouteRoute { path: "/route/:routeId", to: RoutePage }
+page RoutePage {
+  component: import { Route } from "@client/pages/Route.jsx",
+  authRequired: true
+}
+
+route UserProfileRoute { path: "/profile", to: UserProfilePage }
+page UserProfilePage {
+  component: import { UserProfile } from "@client/pages/UserProfile.jsx",
+  authRequired: true
+}
